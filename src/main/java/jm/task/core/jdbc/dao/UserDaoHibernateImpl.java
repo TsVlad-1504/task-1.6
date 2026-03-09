@@ -1,10 +1,10 @@
 package jm.task.core.jdbc.dao;
 
 import jm.task.core.jdbc.model.User;
-import jm.task.core.jdbc.util.Util;
-
+import jm.task.core.jdbc.util.HibernateUtil;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
 import java.sql.*;
-import java.util.ArrayList;
 import java.util.List;
 
 public class UserDaoHibernateImpl implements UserDao {
@@ -15,106 +15,80 @@ public class UserDaoHibernateImpl implements UserDao {
 
     @Override
     public void createUsersTable() {
-        String sql = "CREATE TABLE IF NOT EXISTS users (" +
-                "id BIGINT AUTO_INCREMENT PRIMARY KEY," +
-                "name VARCHAR(50)," +
-                "lastName VARCHAR(50)," +
-                "age TINYINT)";
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction transaction = session.beginTransaction();
 
-        try (Connection connection = Util.getConnection();
-             Statement statement = connection.createStatement()) {
+        session.createSQLQuery(
+                "CREATE TABLE IF NOT EXISTS users (" +
+                        "id BIGINT AUTO_INCREMENT PRIMARY KEY, " +
+                        "name VARCHAR(255), " +
+                        "lastName VARCHAR(255), " +
+                        "age TINYINT)"
+        ).executeUpdate();
 
-            statement.executeUpdate(sql);
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        transaction.commit();
+        session.close();
     }
 
     @Override
     public void dropUsersTable() {
-        String sql = "DROP TABLE IF EXISTS users";
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction transaction = session.beginTransaction();
 
-        try (Connection connection = Util.getConnection();
-             Statement statement = connection.createStatement()) {
+        session.createSQLQuery("DROP TABLE IF EXISTS users")
+                .executeUpdate();
 
-            statement.executeUpdate(sql);
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        transaction.commit();
+        session.close();
     }
 
     @Override
     public void saveUser(String name, String lastName, byte age) {
-        String sql = "INSERT INTO users (name, lastName, age) VALUES (?, ?, ?)";
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction transaction = session.beginTransaction();
 
-        try (Connection connection = Util.getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
+        User user = new User(name, lastName, age);
+        session.save(user);
 
-            ps.setString(1, name);
-            ps.setString(2, lastName);
-            ps.setByte(3, age);
-            ps.executeUpdate();
-
-            System.out.println("User with name – " + name + " added to database");
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        transaction.commit();
+        session.close();
     }
 
     @Override
     public void removeUserById(long id) {
-        String sql = "DELETE FROM users WHERE id = ?";
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction transaction = session.beginTransaction();
 
-        try (Connection connection = Util.getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
-
-            ps.setLong(1, id);
-            ps.executeUpdate();
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+        User user = session.get(User.class, id);
+        if (user != null) {
+            session.delete(user);
         }
+
+        transaction.commit();
+        session.close();
     }
 
     @Override
     public List<User> getAllUsers() {
-        String sql = "SELECT * FROM users";
-        List<User> users = new ArrayList<>();
+        Session session = HibernateUtil.getSessionFactory().openSession();
 
-        try (Connection connection = Util.getConnection();
-             Statement statement = connection.createStatement();
-             ResultSet rs = statement.executeQuery(sql)) {
+        List<User> users = session
+                .createQuery("FROM User", User.class)
+                .getResultList();
 
-            while (rs.next()) {
-                User user = new User();
-                user.setId(rs.getLong("id"));
-                user.setName(rs.getString("name"));
-                user.setLastName(rs.getString("lastName"));
-                user.setAge(rs.getByte("age"));
-                users.add(user);
-            }
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
+        session.close();
         return users;
     }
 
     @Override
     public void cleanUsersTable() {
-        String sql = "DELETE FROM users";
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction transaction = session.beginTransaction();
 
-        try (Connection connection = Util.getConnection();
-             Statement statement = connection.createStatement()) {
+        session.createQuery("DELETE FROM User")
+                .executeUpdate();
 
-            statement.executeUpdate(sql);
-
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        transaction.commit();
+        session.close();
     }
 }
