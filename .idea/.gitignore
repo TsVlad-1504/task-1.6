@@ -6,3 +6,21 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
+
+# Build artifacts
+target/
+*.class
+# Intellij IDEA
+.idea/
+*.iml
+
+# Existing Intellij ignored files
+.shelf/
+.workspace.xml
+httpRequests/
+dataSources/
+dataSources.local.xml/
+
+# Sensitive config files
+# db.properties
+# application.properties
